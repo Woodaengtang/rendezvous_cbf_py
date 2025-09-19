@@ -3,10 +3,10 @@ import os
 import numpy as np
 
 class DataLogger:
-    def __init__(self, log_dir="logs"):
+    def __init__(self, log_dir="logs", file_name="log.csv"):
         self.log_dir = log_dir
         os.makedirs(log_dir, exist_ok=True)
-        self.log_file_path = os.path.join(log_dir, "control_log.csv")
+        self.log_file_path = os.path.join(log_dir, file_name)
         self.header_written = False
 
     def _write_header(self, data_keys):
