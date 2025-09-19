@@ -18,6 +18,31 @@ class RelativeDynamics:
         self.v      = initial_state.v       # The relative velocity between the chaser and the target, expressed in the chaser frame
 
     def ode_model(self, input_force, input_torque, target_state):
+        """
+        Computes the time derivative of the state vector.
+        
+        Args:
+            input_force (np.ndarray): Control force applied to the chaser (3D vector).
+            input_torque (np.ndarray): Control torque applied to the chaser (3D vector).
+            target_state (object): An object containing the target's state information, including:
+                - omega_it_t (np.ndarray): Target's inertial angular velocity expressed in the target frame (3D vector).
+                - dot_omega_it_t (np.ndarray): Time derivative of target's inertial angular velocity (3D vector).
+                - v_t (np.ndarray): Target's inertial velocity expressed in the target frame (3D vector).
+                - dot_v_t (np.ndarray): Time derivative of target's inertial velocity (3D vector).
+                - r_t (np.ndarray): Target's inertial position expressed in the target frame (3D vector).
+                - dot_r_t (np.ndarray): Time derivative of target's inertial position (3D vector).
+                - sigma (np.ndarray): Target's modified Rodrigues parameters (3D vector).
+                
+        Returns:
+            np.ndarray: Time derivative of the state vector (12D vector).
+        """
+        G_mrp = self.G_mrp()
+        sigma_dot = G_mrp @ self.omega
+        omega_dot = np.linalg.inv(self.Jc) @ (input_torque - self.compute_C1_matrix(self.omega, self.sigma, target_state.omega_it_t) @ self.omega - self.compute_D1_vector(self.sigma, target_state.omega_it_t, target_state.dot_omega_it_t))
+        rho_dot = self.v - self.compute_C2_matrix(self.omega, self.sigma, target_state.omega_it_t) @ self.rho
+        v_dot = (1/self.mc) * input_force + self.compute_D2_vector(self.rho, self.sigma, target_state.dot_v_t)
+        x_dot = np.vstack((sigma_dot, omega_dot, rho_dot, v_dot))
+        return x_dot
         
         
     def skew_symmetric(self, vec):
@@ -38,10 +63,10 @@ class RelativeDynamics:
 
     def G_mrp(self):
         """
-        Calculates the G matrix for MRP kinematics.
+        Calculates the G matrix for modified Rodrigues parameters (MRPs) kinematics.
 
         Args:
-            sigma (np.ndarray): Modified Rodrigues Parameters (3D vector).
+            sigma (np.ndarray): MRPs (3D vector).
 
         Returns:
             np.ndarray: The G matrix (3x3).
